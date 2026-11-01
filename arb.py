@@ -8,7 +8,9 @@ who wins. The script prints the bet split and pushes an alert to your phone.
 Odds come from The Odds API (the-odds-api.com). Free key = 500 requests/month.
 """
 import json, os, sys, urllib.request, urllib.parse
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+from zoneinfo import ZoneInfo
+import calendar
 
 API_KEY   = os.environ.get("ODDS_API_KEY", "")
 NTFY      = os.environ.get("NTFY_TOPIC", "")          # phone alerts via ntfy.sh app
@@ -25,9 +27,35 @@ def get(url):
         left = r.headers.get("x-requests-remaining")
         return json.load(r), left
 
-def fetch(sport):
+SCAN_HOURS_ET = [11, 14, 17, 20]   # must match the workflow schedule
+LOOKAHEAD_HRS = 8
+
+def upcoming(sport):
+    """Free call (no quota): are there games starting in the next few hours?"""
+    now = datetime.now(timezone.utc)
+    q = urllib.parse.urlencode({"apiKey": API_KEY,
+        "commenceTimeFrom": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "commenceTimeTo": (now + timedelta(hours=LOOKAHEAD_HRS)).strftime("%Y-%m-%dT%H:%M:%SZ")})
+    events, left = get(f"https://api.the-odds-api.com/v4/sports/{sport}/events?{q}")
+    return len(events), left
+
+def budget(remaining):
+    """Credits this scan may spend so the monthly quota lasts to month end."""
+    et = datetime.now(ZoneInfo("America/New_York"))
+    days_left = calendar.monthrange(et.year, et.month)[1] - et.day
+    scans_today = max(1, sum(h >= et.hour for h in SCAN_HOURS_ET))
+    total_scans = scans_today + days_left * len(SCAN_HOURS_ET)
+    return int(remaining) // total_scans
+
+def pick_markets(n_sports, allowance):
+    wanted = [m for m in MARKETS.split(",") if m]
+    while wanted and n_sports * len(wanted) * len(REGIONS.split(",")) > allowance:
+        wanted.pop()  # drop totals first, then spreads
+    return ",".join(wanted)
+
+def fetch(sport, markets):
     q = urllib.parse.urlencode({"apiKey": API_KEY, "regions": REGIONS,
-        "markets": MARKETS, "oddsFormat": "decimal"})
+        "markets": markets, "oddsFormat": "decimal"})
     return get(f"https://api.the-odds-api.com/v4/sports/{sport}/odds/?{q}")
 
 def find_arbs(games):
@@ -82,15 +110,32 @@ def notify(text):
 def main():
     if not API_KEY:
         sys.exit("Set ODDS_API_KEY (free at the-odds-api.com)")
-    arbs, left = [], "?"
-    for s in SPORTS:
+    arbs, left, active = [], None, []
+    for sp in [x.strip() for x in SPORTS]:
         try:
-            games, left = fetch(s.strip())
+            n, l = upcoming(sp)
+            left = l or left
+            if n: active.append(sp)
+        except Exception as e:
+            print(f"{sp}: {e}")
+    if not active:
+        print("No games in the next few hours. Nothing to scan."); return
+    allowance = budget(left) if left and left.isdigit() else 999
+    # if even moneylines don't fit, keep the sports listed first
+    while active and len(active) * len(REGIONS.split(",")) > allowance:
+        active.pop()
+    markets = pick_markets(len(active), allowance)
+    if not markets:
+        print(f"Quota too low this scan ({left} left). Skipping."); return
+    print(f"Credits left: {left}. Budget this scan: {allowance}. Scanning {active} for {markets}.")
+    for sp in active:
+        try:
+            games, left = fetch(sp, markets)
             arbs += find_arbs(games)
         except Exception as e:
-            print(f"{s}: {e}")
+            print(f"{sp}: {e}")
     arbs.sort(key=lambda a: -a["profit"])
-    print(f"Checked {len(SPORTS)} sports. API requests left this month: {left}")
+    print(f"Done. Credits left this month: {left}")
     if not arbs:
         print("No arbs right now."); return
     for a in arbs:

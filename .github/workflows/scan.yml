@@ -1,7 +1,8 @@
 name: Scan for arbs
 on:
   schedule:
-    - cron: "30 17 * * *"   # daily 12:30pm ET, before the main slate (free key = 500 credits/mo, 12 per scan)
+    - cron: "30 16,19,22 * * *"   # 11:30am, 2:30pm, 5:30pm ET
+    - cron: "30 1 * * *"          # 8:30pm ET (budget is paced to last the month)
   workflow_dispatch:            # "Run workflow" button = scan now
 jobs:
   scan:
