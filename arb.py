@@ -107,7 +107,7 @@ def notify(text):
         headers={"Title": "Arb found", "Priority": "high"})
     urllib.request.urlopen(req, timeout=15)
 
-def main():
+def main(allowance_override=None, seen=None):
     if not API_KEY:
         sys.exit("Set ODDS_API_KEY (free at the-odds-api.com)")
     arbs, left, active = [], None, []
@@ -119,14 +119,17 @@ def main():
         except Exception as e:
             print(f"{sp}: {e}")
     if not active:
-        print("No games in the next few hours. Nothing to scan."); return
-    allowance = budget(left) if left and left.isdigit() else 999
+        print("No games in the next few hours. Nothing to scan."); return []
+    if allowance_override is not None:
+        allowance = allowance_override(int(left)) if left and left.isdigit() else 0
+    else:
+        allowance = budget(left) if left and left.isdigit() else 999
     # if even moneylines don't fit, keep the sports listed first
     while active and len(active) * len(REGIONS.split(",")) > allowance:
         active.pop()
     markets = pick_markets(len(active), allowance)
     if not markets:
-        print(f"Quota too low this scan ({left} left). Skipping."); return
+        print(f"Quota too low this scan ({left} left). Skipping."); return []
     print(f"Credits left: {left}. Budget this scan: {allowance}. Scanning {active} for {markets}.")
     for sp in active:
         try:
@@ -137,10 +140,18 @@ def main():
     arbs.sort(key=lambda a: -a["profit"])
     print(f"Done. Credits left this month: {left}")
     if not arbs:
-        print("No arbs right now."); return
+        print("No arbs right now."); return []
     for a in arbs:
         print(fmt(a) + "\n")
-    notify("\n\n".join(fmt(a) for a in arbs[:5]))
+    if seen is not None:  # loop mode: only alert on arbs not already sent
+        key = lambda a: (a["game"], a["market"], tuple((n, bk) for n, bk, _, _ in a["bets"]))
+        new = [a for a in arbs if key(a) not in seen]
+        seen.update(key(a) for a in arbs)
+    else:
+        new = arbs
+    if new:
+        notify("\n\n".join(fmt(a) for a in new[:5]))
+    return arbs
 
 if __name__ == "__main__":
     main()

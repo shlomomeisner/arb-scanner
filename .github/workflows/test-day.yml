@@ -1,0 +1,33 @@
+name: Test day
+on:
+  push:
+    paths: [".github/test-day-trigger"]
+  workflow_dispatch:
+env:
+  ODDS_API_KEY: ${{ secrets.ODDS_API_KEY || '9e666e4d02c6e06932cfbf6c98cb7129' }}
+  NTFY_TOPIC: arb-shlomo-903401ee
+  REGIONS: us,us2              # more books for the test
+  MIN_PROFIT: "0.3"
+  INTERVAL_MIN: "20"
+  END_UTC: "2026-11-02T03:30:00"   # 10:30pm ET
+jobs:
+  first-half:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: python test_day.py
+        env: { MAX_MIN: "340" }
+  second-half:
+    needs: first-half
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: python test_day.py
+        env: { MAX_MIN: "340", FINAL: "1" }
