@@ -14,10 +14,10 @@ API_KEY   = os.environ.get("ODDS_API_KEY", "")
 NTFY      = os.environ.get("NTFY_TOPIC", "")          # phone alerts via ntfy.sh app
 BANKROLL  = float(os.environ.get("BANKROLL", "100"))  # total $ per arb
 MIN_PROFIT= float(os.environ.get("MIN_PROFIT", "0.5"))# only alert at >= this %
-REGIONS   = os.environ.get("REGIONS", "us,us2")
-MARKETS   = os.environ.get("MARKETS", "h2h")          # h2h = moneyline
+REGIONS   = os.environ.get("REGIONS", "us")
+MARKETS   = os.environ.get("MARKETS", "h2h,spreads,totals")  # moneyline, spread, over/under
 SPORTS    = os.environ.get("SPORTS",
-    "americanfootball_nfl,basketball_nba,icehockey_nhl,americanfootball_ncaaf,soccer_epl").split(",")
+    "americanfootball_nfl,basketball_nba,icehockey_nhl,americanfootball_ncaaf").split(",")
 BOOKS     = [b for b in os.environ.get("BOOKS", "").split(",") if b]  # empty = all
 
 def get(url):
@@ -37,25 +37,33 @@ def find_arbs(games):
         if datetime.fromisoformat(g["commence_time"].replace("Z", "+00:00")) < now:
             continue  # skip live games: lines move too fast
         for mkt in {m["key"] for b in g["bookmakers"] for m in b["markets"]}:
-            best = {}  # outcome -> (price, book)
+            groups = {}  # line -> {outcome -> (price, book)}
             for b in g["bookmakers"]:
                 if BOOKS and b["key"] not in BOOKS:
                     continue
                 for m in b["markets"]:
                     if m["key"] != mkt: continue
                     for o in m["outcomes"]:
-                        name = o["name"] + (f" {o['point']:+g}" if "point" in o else "")
+                        pt = o.get("point")
+                        if pt is None: line, name = None, o["name"]
+                        elif mkt == "totals": line, name = pt, f"{o['name']} {pt:g}"
+                        else:  # spreads: both sides of the same line share home's number
+                            line = pt if o["name"] == g["home_team"] else -pt
+                            name = f"{o['name']} {pt:+g}"
+                        best = groups.setdefault(line, {})
                         if name not in best or o["price"] > best[name][0]:
                             best[name] = (o["price"], b["title"])
-            if len(best) < 2: continue
-            implied = sum(1 / p for p, _ in best.values())
-            if implied >= 1: continue
-            profit = (1 / implied - 1) * 100
-            if profit < MIN_PROFIT: continue
-            bets = [(n, bk, p, BANKROLL * (1 / p) / implied) for n, (p, bk) in best.items()]
-            out.append({"game": f"{g['away_team']} @ {g['home_team']}", "sport": g["sport_title"],
-                        "start": g["commence_time"], "market": mkt, "profit": profit,
-                        "payout": BANKROLL / implied, "bets": bets})
+            for best in groups.values():
+                if len(best) < 2: continue
+                implied = sum(1 / p for p, _ in best.values())
+                if implied >= 1: continue
+                profit = (1 / implied - 1) * 100
+                if profit < MIN_PROFIT: continue
+                bets = [(n, bk, p, BANKROLL * (1 / p) / implied) for n, (p, bk) in best.items()]
+                label = {"h2h": "moneyline", "spreads": "spread", "totals": "over/under"}.get(mkt, mkt)
+                out.append({"game": f"{g['away_team']} @ {g['home_team']}", "sport": g["sport_title"],
+                            "start": g["commence_time"], "market": label, "profit": profit,
+                            "payout": BANKROLL / implied, "bets": bets})
     return out
 
 def fmt(a):

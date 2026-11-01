@@ -1,10 +1,8 @@
 name: Scan for arbs
 on:
   schedule:
-    - cron: "0 13-23/2 * * *"   # every 2 hrs, 9am–7pm ET (fits the free 500/mo key)
+    - cron: "30 17 * * *"   # daily 12:30pm ET, before the main slate (free key = 500 credits/mo, 12 per scan)
   workflow_dispatch:            # "Run workflow" button = scan now
-  push:
-    branches: [main]            # every code update also runs a scan
 jobs:
   scan:
     runs-on: ubuntu-latest
