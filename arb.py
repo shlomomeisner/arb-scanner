@@ -15,7 +15,7 @@ import calendar
 API_KEY   = os.environ.get("ODDS_API_KEY", "")
 NTFY      = os.environ.get("NTFY_TOPIC", "")          # phone alerts via ntfy.sh app
 BANKROLL  = float(os.environ.get("BANKROLL", "100"))  # total $ per arb
-MIN_PROFIT= float(os.environ.get("MIN_PROFIT", "0.5"))# only alert at >= this %
+MIN_PROFIT= float(os.environ.get("MIN_PROFIT", "1.0"))# only alert at >= this %
 REGIONS   = os.environ.get("REGIONS", "us,us2")
 MARKETS   = os.environ.get("MARKETS", "h2h,spreads,totals")  # moneyline, spread, over/under
 SPORTS    = os.environ.get("SPORTS",
