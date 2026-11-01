@@ -11,10 +11,10 @@ Checks every US sportsbook (DraftKings, FanDuel, BetMGM, Caesars, ESPN BET, Fana
 
 ## Example alert
 ```
-2.14% ARB — Jets @ Bills (NFL, h2h)
-  $46.30 on Buffalo Bills @ 2.2 — FanDuel
-  $53.70 on New York Jets @ 1.9 — DraftKings
-  Bet $100 → get back $102.14 no matter who wins
+1.95% ARB — Jets @ Bills (NFL, h2h)
+  $46.34 on Buffalo Bills @ 2.2 — FanDuel
+  $53.66 on New York Jets @ 1.9 — DraftKings
+  Bet $100 → get back $101.95 no matter who wins
 ```
 
 ## Read before betting
