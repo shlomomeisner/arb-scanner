@@ -13,6 +13,6 @@ jobs:
       - run: python arb.py
         env:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
-          NTFY_TOPIC:   ${{ secrets.NTFY_TOPIC }}
+          NTFY_TOPIC:   arb-shlomo-903401ee
           BANKROLL:     ${{ vars.BANKROLL || '100' }}
           MIN_PROFIT:   ${{ vars.MIN_PROFIT || '0.5' }}
