@@ -16,11 +16,18 @@ API_KEY   = os.environ.get("ODDS_API_KEY", "")
 NTFY      = os.environ.get("NTFY_TOPIC", "")          # phone alerts via ntfy.sh app
 BANKROLL  = float(os.environ.get("BANKROLL", "100"))  # total $ per arb
 MIN_PROFIT= float(os.environ.get("MIN_PROFIT", "0.5"))# only alert at >= this %
-REGIONS   = os.environ.get("REGIONS", "us")
+REGIONS   = os.environ.get("REGIONS", "us,us2")
 MARKETS   = os.environ.get("MARKETS", "h2h,spreads,totals")  # moneyline, spread, over/under
 SPORTS    = os.environ.get("SPORTS",
     "americanfootball_nfl,basketball_nba,icehockey_nhl,americanfootball_ncaaf").split(",")
-BOOKS     = [b for b in os.environ.get("BOOKS", "").split(",") if b]  # empty = all
+BOOKS     = [b for b in os.environ.get("BOOKS", "").split(",") if b]  # API keys; empty = all
+# Only books Shlomo has accounts at (matched on the book's display name)
+MY_BOOKS  = [b.strip().lower() for b in os.environ.get("MY_BOOKS",
+    "draftkings,fanduel,caesars,betmgm,fanatics,bet365,thescore,espn,betrivers").split(",") if b.strip()]
+
+def mine(title):
+    t = title.lower().replace(" ", "")
+    return not MY_BOOKS or any(b in t for b in MY_BOOKS)
 
 def get(url):
     with urllib.request.urlopen(url, timeout=30) as r:
@@ -67,7 +74,7 @@ def find_arbs(games):
         for mkt in {m["key"] for b in g["bookmakers"] for m in b["markets"]}:
             groups = {}  # line -> {outcome -> (price, book)}
             for b in g["bookmakers"]:
-                if BOOKS and b["key"] not in BOOKS:
+                if (BOOKS and b["key"] not in BOOKS) or not mine(b["title"]):
                     continue
                 for m in b["markets"]:
                     if m["key"] != mkt: continue

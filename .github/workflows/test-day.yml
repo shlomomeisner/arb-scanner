@@ -6,7 +6,7 @@ on:
 env:
   ODDS_API_KEY: ${{ secrets.ODDS_API_KEY || '9e666e4d02c6e06932cfbf6c98cb7129' }}
   NTFY_TOPIC: arb-shlomo-903401ee
-  REGIONS: us,us2              # more books for the test
+  REGIONS: us,us2              # us2 adds Fanatics, theScore/ESPN BET
   MIN_PROFIT: "0.3"
   INTERVAL_MIN: "20"
   END_UTC: "2026-11-02T03:30:00"   # 10:30pm ET
