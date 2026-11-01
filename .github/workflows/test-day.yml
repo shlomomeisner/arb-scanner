@@ -22,7 +22,7 @@ jobs:
         env: { MAX_MIN: "340" }
   second-half:
     needs: first-half
-    if: always()
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 355
     steps:
