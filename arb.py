@@ -101,11 +101,15 @@ def find_arbs(games):
                             "payout": BANKROLL / implied, "bets": bets})
     return out
 
+def american(d):
+    return f"+{round((d - 1) * 100)}" if d >= 2 else f"-{round(100 / (d - 1))}"
+
 def fmt(a):
-    lines = [f"{a['profit']:.2f}% ARB — {a['game']} ({a['sport']}, {a['market']})"]
+    profit = a["payout"] - BANKROLL
+    lines = [f"+${profit:,.2f} guaranteed ({a['profit']:.1f}%) — {a['game']} ({a['sport']}, {a['market']})"]
     for n, bk, p, stake in a["bets"]:
-        lines.append(f"  ${stake:,.2f} on {n} @ {p} — {bk}")
-    lines.append(f"  Bet ${BANKROLL:,.0f} → get back ${a['payout']:,.2f} no matter who wins")
+        lines.append(f"  Bet ${stake:,.0f} on {n} {american(p)} at {bk}")
+    lines.append(f"  Total ${BANKROLL:,.0f}. Whoever wins, you get back ${a['payout']:,.2f}")
     return "\n".join(lines)
 
 def notify(text):
