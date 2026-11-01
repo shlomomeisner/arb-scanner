@@ -3,6 +3,8 @@ on:
   schedule:
     - cron: "0 13-23/2 * * *"   # every 2 hrs, 9am–7pm ET (fits the free 500/mo key)
   workflow_dispatch:            # "Run workflow" button = scan now
+  push:
+    branches: [main]            # every code update also runs a scan
 jobs:
   scan:
     runs-on: ubuntu-latest
@@ -12,7 +14,7 @@ jobs:
         with: { python-version: "3.12" }
       - run: python arb.py
         env:
-          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY || '9e666e4d02c6e06932cfbf6c98cb7129' }}
           NTFY_TOPIC:   arb-shlomo-903401ee
           BANKROLL:     ${{ vars.BANKROLL || '100' }}
           MIN_PROFIT:   ${{ vars.MIN_PROFIT || '0.5' }}

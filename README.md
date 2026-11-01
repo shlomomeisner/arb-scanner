@@ -5,7 +5,7 @@ Checks every US sportsbook (DraftKings, FanDuel, BetMGM, Caesars, ESPN BET, Fana
 ## Setup (5 min, all from your phone)
 1. Get a free key at https://the-odds-api.com
 2. Install the **ntfy** app and subscribe to topic `arb-shlomo-903401ee`
-3. In this repo: **Settings → Secrets and variables → Actions** → add secret `ODDS_API_KEY`
+3. In this repo: **Settings → Secrets and variables → Actions** → key is already set in the workflow (a secret named `ODDS_API_KEY` overrides it)
 4. Optional variables: `BANKROLL` (default 100), `MIN_PROFIT` % (default 0.5)
 5. **Actions → Scan for arbs → Run workflow** to test
 
